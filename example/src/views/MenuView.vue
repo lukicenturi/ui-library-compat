@@ -146,7 +146,11 @@ const menus = ref<
             </RuiButton>
           </template>
           <div class="px-3 py-2">
-            This is menu
+            <RouterLink to="/tooltips">
+              <RuiButton>
+                test
+              </RuiButton>
+            </RouterLink>
           </div>
         </RuiMenu>
       </div>

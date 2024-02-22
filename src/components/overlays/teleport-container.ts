@@ -82,8 +82,6 @@ const TeleportContainer = Vue.extend({
   },
 });
 
-export default TeleportContainer;
-
 export function createTeleport(tag: string = 'DIV', id = generateId('rui-teleport-container')) {
   return new TeleportContainer({
     el: createTeleportNode(get(tag), `#${id}`),
