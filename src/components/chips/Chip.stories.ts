@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import Chip, { type Props as ChipProps } from '@/components/chips/Chip.vue';
 import { contextColors } from '@/consts/colors';
 import type { Meta, StoryFn, StoryObj } from '@storybook/vue';
@@ -393,6 +394,17 @@ export const OutlinedErrorSmallDisabledPrefixed: Story = {
     prepend: 'BTC',
     size: 'sm',
     variant: 'outlined',
+  },
+};
+
+export const SoftDefault: Story = {
+  args: {
+    children: 'Chip',
+    closeable: false,
+    color: 'info',
+    disabled: false,
+    size: 'md',
+    variant: 'soft',
   },
 };
 

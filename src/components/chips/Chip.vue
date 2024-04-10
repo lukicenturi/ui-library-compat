@@ -11,7 +11,7 @@ export interface Props {
   closeable?: boolean;
   disabled?: boolean;
   size?: 'sm' | 'md';
-  variant?: 'filled' | 'outlined';
+  variant?: 'filled' | 'outlined' | 'soft';
   color?: 'grey' | ContextColorsType;
   closeIcon?: RuiIcons;
   bgColor?: string;
@@ -144,6 +144,14 @@ const style: ComputedRef<Partial<CSSStyleDeclaration>> = computed(() => {
         @apply hover:bg-black/[0.04] focus:bg-black/[0.12];
       }
     }
+
+    &.soft {
+      @apply bg-rui-grey-300 text-rui-text-secondary;
+
+      &:not(.readonly):not(.disabled) {
+        @apply hover:bg-black/[0.04] focus:bg-black/[0.12];
+      }
+    }
   }
 
   @each $color in c.$context-colors {
@@ -158,6 +166,14 @@ const style: ComputedRef<Partial<CSSStyleDeclaration>> = computed(() => {
 
       &.outlined {
         @apply border text-rui-#{$color} border-rui-#{$color}/50 bg-transparent;
+
+        &:not(.readonly):not(.disabled) {
+          @apply hover:bg-rui-#{$color}/[0.04];
+        }
+      }
+
+      &.soft {
+        @apply text-rui-#{$color} bg-rui-#{$color}/[0.1];
 
         &:not(.readonly):not(.disabled) {
           @apply hover:bg-rui-#{$color}/[0.04];

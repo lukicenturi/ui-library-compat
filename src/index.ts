@@ -20,7 +20,7 @@ export {
   ThemeMode,
 } from '@/types/theme';
 
-export { type ContextColorsType, contextColors } from '@/consts/colors';
+export { type ContextColorsType, contextColors, isContextColor } from '@/consts/colors';
 
 export * from '@/composables';
 

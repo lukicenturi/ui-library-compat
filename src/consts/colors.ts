@@ -47,6 +47,10 @@ export const contextColors = [
 
 export type ContextColorsType = (typeof contextColors)[number];
 
+export function isContextColor(color: string): color is ContextColorsType {
+  return contextColors.includes(color as any);
+}
+
 export const contextColorsIntensities = [
   { name: 'Regular', prefix: '' },
   { name: 'Darker', prefix: '-darker' },

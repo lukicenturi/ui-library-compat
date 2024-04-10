@@ -553,6 +553,78 @@ const chips = ref<ChipProps[]>([
     variant: 'outlined',
     closeable: false,
   },
+  {
+    disabled: false,
+    color: 'primary',
+    variant: 'soft',
+    closeable: true,
+  },
+  {
+    disabled: false,
+    color: 'secondary',
+    variant: 'soft',
+    closeable: true,
+  },
+  {
+    disabled: false,
+    color: 'error',
+    variant: 'soft',
+    closeable: true,
+  },
+  {
+    disabled: false,
+    color: 'warning',
+    variant: 'soft',
+    closeable: true,
+  },
+  {
+    disabled: false,
+    color: 'info',
+    variant: 'soft',
+    closeable: true,
+  },
+  {
+    disabled: false,
+    color: 'success',
+    variant: 'soft',
+    closeable: true,
+  },
+  {
+    disabled: true,
+    color: 'primary',
+    variant: 'soft',
+    closeable: true,
+  },
+  {
+    disabled: true,
+    color: 'secondary',
+    variant: 'soft',
+    closeable: true,
+  },
+  {
+    disabled: true,
+    color: 'error',
+    variant: 'soft',
+    closeable: true,
+  },
+  {
+    disabled: true,
+    color: 'warning',
+    variant: 'soft',
+    closeable: true,
+  },
+  {
+    disabled: true,
+    color: 'info',
+    variant: 'soft',
+    closeable: true,
+  },
+  {
+    disabled: true,
+    color: 'success',
+    variant: 'soft',
+    closeable: true,
+  },
 ]);
 
 const prependChips = ref<ChipProps[]>([
