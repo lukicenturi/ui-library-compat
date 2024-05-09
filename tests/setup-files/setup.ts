@@ -1,6 +1,8 @@
 // setup.js file
 import { vi } from 'vitest';
 import { ref } from 'vue';
+import { config } from '@vue/test-utils';
+import { RouterLinkStub } from '~/tests/stubs/RouterLinkStub';
 import * as Icons from '../../src/icons';
 import { useIcons } from '../../src/composables';
 
@@ -44,3 +46,6 @@ vi.mock('vue', async () => {
 vi.mock('vue-router/composables', () => ({
   useRoute: vi.fn(),
 }));
+
+// Global stub components
+config.stubs.RouterLink = RouterLinkStub;

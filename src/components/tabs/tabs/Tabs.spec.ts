@@ -2,7 +2,6 @@ import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import Tabs from '@/components/tabs/tabs/Tabs.vue';
 import Tab from '@/components/tabs/tab/Tab.vue';
-import { RouterLinkStub } from '~/tests/stubs/RouterLinkStub';
 
 function createWrapper(options?: any) {
   return mount(Tabs, {
@@ -16,7 +15,6 @@ function createWrapper(options?: any) {
       ],
     },
     stubs: {
-      RouterLink: RouterLinkStub,
       Tab,
       Transition: {
         template: `<span><slot></slot></span>`,

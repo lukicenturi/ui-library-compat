@@ -1,15 +1,11 @@
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import Tab from '@/components/tabs/tab/Tab.vue';
-import { RouterLinkStub } from '~/tests/stubs/RouterLinkStub';
 
 function createWrapper(options?: any) {
   return mount(Tab, {
     ...options,
     propsData: { tabValue: 'tab-1', ...options?.propsData },
-    stubs: {
-      RouterLink: RouterLinkStub,
-    },
   });
 }
 
