@@ -220,7 +220,6 @@ const menuSelectCustom = ref<MenuSelectProps[]>([
     dense: true,
     errorMessages: ['This is required'],
     hint: 'lorem ipsum dolor',
-    showDetails: true,
     options,
   },
   {
@@ -230,7 +229,6 @@ const menuSelectCustom = ref<MenuSelectProps[]>([
     keyAttr: 'id',
     textAttr: 'label',
     successMessages: ['lgtm!'],
-    showDetails: true,
     value: undefined,
     options,
   },
@@ -410,15 +408,15 @@ const menuSelectPrimitive = ref<MenuSelectProps[]>([
           :label-class="menu.dense ? undefined : 'h-20'"
           variant="outlined"
         >
-          <template #activator.text="{ value }">
-            {{ value.id }} | {{ value.label }}
+          <template #selection="{ item }">
+            {{ item.id }} | {{ item.label }}
           </template>
-          <template #item.text="{ option }">
+          <template #item="{ item }">
             <span
               class="block"
               :class="{ 'my-4': !menu.dense }"
             >
-              {{ option.label }}
+              {{ item.label }}
             </span>
           </template>
         </RuiMenuSelect>

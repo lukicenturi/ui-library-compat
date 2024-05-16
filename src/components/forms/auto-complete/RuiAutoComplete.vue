@@ -1,17 +1,22 @@
 <script lang="ts" setup>
+import { logicAnd, logicOr } from '@vueuse/math';
 import RuiButton from '@/components/buttons/button/Button.vue';
 import RuiIcon from '@/components/icons/Icon.vue';
+import RuiChip from '@/components/chips/Chip.vue';
 import RuiMenu, { type MenuProps } from '@/components/overlays/menu/Menu.vue';
+import type { Ref } from 'vue';
 
 export type T = any;
 
 export type K = keyof T;
 
+export type ModelValue<T> = T | null | T[];
+
 export interface Props {
   options: T[];
   keyAttr?: K;
   textAttr?: K;
-  value?: T | null;
+  value?: ModelValue<T>;
   disabled?: boolean;
   readOnly?: boolean;
   dense?: boolean;
@@ -20,7 +25,7 @@ export interface Props {
   menuOptions?: MenuProps;
   labelClass?: string;
   menuClass?: string;
-  optionClass?: string;
+  itemClass?: string;
   prependWidth?: number; // in rem
   appendWidth?: number; // in rem
   itemHeight?: number; // in px
@@ -31,17 +36,20 @@ export interface Props {
   returnPrimitive?: boolean;
   hideDetails?: boolean;
   autoSelectFirst?: boolean;
+  searchInput?: string;
+  noFilter?: boolean;
+  filter?: (item: T, queryText: string) => boolean;
 }
 
 defineOptions({
-  name: 'RuiMenuSelect',
+  name: 'RuiAutoComplete',
 });
 
 const props = withDefaults(defineProps<Props>(), {
   disabled: false,
   readOnly: false,
   dense: false,
-  clearable: false,
+  clearable: true,
   hideDetails: false,
   returnPrimitive: false,
   label: 'Select',
@@ -55,45 +63,97 @@ const props = withDefaults(defineProps<Props>(), {
   errorMessages: () => [],
   successMessages: () => [],
   autoSelectFirst: false,
+  searchInput: '',
+  noFilter: false,
 });
 
 const emit = defineEmits<{
-  (e: 'input', value?: T | null): void;
+  (e: 'input', value: ModelValue<T>): void;
+  (e: 'update:search-input', search: string): void;
 }>();
 
 const css = useCssModule();
 
-const { dense, variant } = toRefs(props);
+const { dense, variant, disabled } = toRefs(props);
 
-const activator = ref();
-const { focused } = useFocus(activator);
+const multiple = computed(() => Array.isArray(props.value));
+
+const textInput = ref();
+const { focused: searchInputFocused } = useFocus(textInput);
 
 const isPrimitiveOptions = computed(() => !(props.options[0] instanceof Object));
 
 const keyProp = computed(() => props.keyAttr ?? 'key');
 const textProp = computed(() => props.textAttr ?? 'label');
 
-const mappedOptions = computed(() => {
-  if (!get(isPrimitiveOptions))
-    return props.options;
+const internalSearch: Ref<string> = ref('');
+const debouncedInternalSearch = refDebounced(internalSearch, 200);
 
-  return props.options.map(option => ({
-    [get(keyProp)]: option,
-    [get(textProp)]: option,
+const searchInputModel = useVModel(props, 'searchInput', emit, {
+  eventName: 'update:search-input',
+});
+
+watchImmediate(searchInputModel, (search) => {
+  set(internalSearch, search);
+});
+
+const mappedOptions = computed(() => {
+  const filtered = props.options;
+  if (!get(isPrimitiveOptions))
+    return filtered;
+
+  return filtered.map(item => ({
+    [get(keyProp)]: item,
+    [get(textProp)]: item,
   }));
 });
 
-const value = computed({
+const filteredOptions = computed(() => {
+  const search = get(debouncedInternalSearch);
+  const optionsVal = get(mappedOptions);
+  if (props.noFilter || !search)
+    return optionsVal;
+
+  const usedFilter = props.filter || ((item, search) => {
+    const keywords = [item[get(keyProp)]];
+
+    if (!get(isPrimitiveOptions))
+      keywords.push(item[get(textProp)]);
+
+    return keywords.some(keyword => getTextToken(keyword).includes(getTextToken(search)));
+  });
+
+  return optionsVal.filter(item => usedFilter(item, search));
+});
+
+function input(value: ModelValue<T>) {
+  emit('input', value);
+}
+
+const value: Ref<T[]> = computed({
   get: () => {
+    const value = props.value;
+    const valueToArray = value ? (get(multiple) ? value : [value]) : [];
+
     if (props.keyAttr || props.returnPrimitive)
-      return get(mappedOptions).find(option => option[get(keyProp)] === props.value);
-    return props.value;
+      return get(mappedOptions).filter(item => valueToArray.includes(item[get(keyProp)]));
+
+    return valueToArray;
   },
-  set: (selected) => {
-    const selection = props.keyAttr || props.returnPrimitive ? selected[get(keyProp)] : selected;
-    return emit('input', selection);
+  set: (selected: T[]) => {
+    const selection = props.keyAttr || props.returnPrimitive ? selected.map(item => item[get(keyProp)]) : selected;
+
+    if (get(multiple))
+      return input(selection);
+
+    if (selection.length === 0)
+      return input(null);
+
+    return input(selection[0]);
   },
 });
+
+const valueSet = computed(() => get(value).length > 0);
 
 const labelWithQuote = computed(() => {
   if (!props.label)
@@ -111,35 +171,158 @@ const {
   getText,
   getIdentifier,
   isActiveItem,
+  itemIndexInValue,
   menuRef,
   highlightedIndex,
   moveHighlight,
+  applyHighlighted,
 } = useDropdownMenu<T, K>({
   itemHeight: props.itemHeight ?? (props.dense ? 30 : 48),
   keyAttr: get(keyProp),
   textAttr: get(textProp),
-  options: mappedOptions,
-  autoFocus: true,
+  options: filteredOptions,
   dense,
   value,
+  setValue,
   autoSelectFirst: props.autoSelectFirst,
 });
 
 const outlined = computed(() => get(variant) === 'outlined');
 
-const float = computed(() => (get(isOpen) || !!get(value)) && get(outlined));
+const float = logicAnd(
+  logicOr(
+    isOpen,
+    valueSet,
+    searchInputFocused,
+  ),
+  outlined,
+);
 
 const virtualContainerProps = computed(() => ({
   style: containerProps.style as any,
   ref: containerProps.ref as any,
 }));
 
+function updateInternalSearch(value: string = '') {
+  set(searchInputModel, value);
+  set(internalSearch, value);
+}
+
+function updateSearchInput(event: any) {
+  const value = event.target.value;
+  set(isOpen, true);
+  updateInternalSearch(value);
+}
+
 function setValue(val: T, index?: number) {
   if (isDefined(index))
     set(highlightedIndex, index);
 
-  set(value, val);
-  set(focused, true);
+  if (get(multiple)) {
+    const newValue = [...get(value)];
+    const indexInValue = itemIndexInValue(val);
+    if (indexInValue === -1) {
+      updateInternalSearch();
+      newValue.push(val);
+    }
+
+    else { newValue.splice(indexInValue, 1); }
+    set(value, newValue);
+  }
+  else {
+    nextTick(() => {
+      set(isOpen, false);
+    });
+    updateInternalSearch();
+    set(value, [val]);
+  }
+
+  set(searchInputFocused, true);
+}
+
+function setInputFocus() {
+  nextTick(() => {
+    set(searchInputFocused, true);
+  });
+}
+
+const focusedValueIndex: Ref<number> = ref(-1);
+
+function setValueFocus(index: number) {
+  set(focusedValueIndex, index);
+}
+
+watch(value, () => {
+  set(focusedValueIndex, -1);
+});
+
+watch(focusedValueIndex, (index) => {
+  if (index === -1 || !get(multiple))
+    return;
+
+  nextTick(() => {
+    const data = get(value)[index][get(keyProp)];
+    const activeChip = get(activator).querySelector(`[data-value="${data}"]`);
+    activeChip?.focus();
+  });
+});
+
+function moveSelectedValueHighlight(next: boolean) {
+  if (!get(multiple))
+    return;
+
+  const total = get(value).length;
+
+  let current = get(focusedValueIndex);
+
+  if (current === -1) {
+    set(focusedValueIndex, next ? 0 : total - 1);
+    return;
+  }
+
+  const move = next ? 1 : -1;
+  current += move;
+
+  if (current < 0 || current >= total) {
+    set(focusedValueIndex, -1);
+    set(searchInputFocused, true);
+  }
+  else {
+    set(focusedValueIndex, current);
+  }
+}
+
+const activator = ref();
+const { focused: activatorFocusedWithin } = useFocusWithin(activator);
+const { focused: menuFocusedWithin } = useFocusWithin(containerProps.ref);
+const anyFocused = logicOr(activatorFocusedWithin, menuFocusedWithin);
+
+// Close menu if the activator is not focused anymore
+watch(anyFocused, (focused) => {
+  if (!focused) {
+    set(isOpen, false);
+    updateInternalSearch();
+  }
+});
+
+function onInputFocused() {
+  set(isOpen, true);
+  set(focusedValueIndex, -1);
+}
+
+function clear() {
+  emit('input', null);
+}
+
+function onInputDeletePressed() {
+  const total = get(value).length;
+  if (!get(internalSearch) && total > 0) {
+    if (get(multiple))
+      set(focusedValueIndex, total - 1);
+
+    else
+      clear();
+  }
 }
 </script>
 
@@ -149,8 +332,9 @@ function setValue(val: T, index?: number) {
     :class="css.wrapper"
     v-bind="{
       placement: 'bottom-start',
-      closeOnContentClick: true,
+      closeOnContentClick: false,
       fullWidth: true,
+      persistOnActivatorClick: true,
       ...menuOptions,
       errorMessages,
       successMessages,
@@ -165,12 +349,8 @@ function setValue(val: T, index?: number) {
         name="activator"
         v-bind="{ disabled, value, variant, readOnly, on, open, hasError, hasSuccess }"
       >
-        <button
+        <div
           ref="activator"
-          :disabled="disabled"
-          :aria-disabled="disabled"
-          type="button"
-          :tabindex="disabled || readOnly ? -1 : 0"
           :class="[
             css.activator,
             labelClass,
@@ -181,23 +361,29 @@ function setValue(val: T, index?: number) {
               [css.dense]: dense,
               [css.float]: float,
               [css.opened]: open,
-              [css['with-value']]: !!value,
+              [css['with-value']]: valueSet,
               [css['with-error']]: hasError,
               [css['with-success']]: hasSuccess && !hasError,
             },
           ]"
           data-id="activator"
+          :tabindex="disabled || readOnly ? -1 : 0"
           v-on="readOnly ? {} : on"
+          @click="setInputFocus()"
+          @focus="setInputFocus()"
+          @keydown.enter="applyHighlighted()"
+          @keydown.left.prevent="moveSelectedValueHighlight(false)"
+          @keydown.right.prevent="moveSelectedValueHighlight(true)"
           @keydown.up.prevent="moveHighlight(true)"
           @keydown.down.prevent="moveHighlight(false)"
         >
           <span
-            v-if="outlined || !value"
+            v-if="outlined || (!valueSet && !searchInputFocused)"
             :class="[
               css.label,
               {
                 'absolute': outlined,
-                'pr-2': !value && !open && outlined,
+                'pr-2': !valueSet && !open && outlined,
               },
             ]"
           >
@@ -208,27 +394,74 @@ function setValue(val: T, index?: number) {
               {{ label }}
             </slot>
           </span>
-          <span
-            v-if="value"
-            class="w-full"
-            :class="css.value"
-          >
-            <slot
-              name="selection.prepend"
-              v-bind="{ item: value }"
+          <div :class="css.value">
+            <template v-for="(item, i) in value">
+              <RuiChip
+                v-if="multiple"
+                :key="item[keyProp]"
+                tabindex="-1"
+                :size="dense ? 'sm' : 'md'"
+                :data-value="item[keyProp]"
+                closeable
+                clickable
+                @keydown.delete="setValue(item)"
+                @click.stop="setValueFocus(i)"
+                @click:close="setValue(item)"
+              >
+                <div
+                  :key="i"
+                  class="flex"
+                >
+                  <slot
+                    name="selection.prepend"
+                    :index="i"
+                    v-bind="{ item }"
+                  />
+                  <slot
+                    :index="i"
+                    name="selection"
+                    v-bind="{ item }"
+                  >
+                    {{ getText(item) }}
+                  </slot>
+                </div>
+              </RuiChip>
+              <div
+                v-else
+                :key="item[keyProp]"
+                class="flex"
+              >
+                <slot
+                  name="selection.prepend"
+                  :index="i"
+                  v-bind="{ item }"
+                />
+                <slot
+                  :index="i"
+                  name="selection"
+                  v-bind="{ item }"
+                >
+                  {{ getText(item) }}
+                </slot>
+              </div>
+            </template>
+            <input
+              ref="textInput"
+              :disabled="disabled"
+              :value="internalSearch"
+              class="bg-transparent outline-none min-w-[4rem] flex-1"
+              type="text"
+              :class="{ '!w-0 !min-w-0': !anyFocused }"
+              @keydown.delete="onInputDeletePressed()"
+              @input="updateSearchInput($event)"
+              @focus="onInputFocused()"
             />
-            <slot
-              name="selection"
-              v-bind="{ item: value }"
-            >
-              {{ getText(value) }}
-            </slot>
-          </span>
+          </div>
 
           <span
-            v-if="clearable && value && !disabled"
-            :class="css.clear"
-            @click.stop.prevent="emit('input', null)"
+            v-if="clearable && valueSet && !disabled"
+            :class="[css.clear, anyFocused ?? '!visible']"
+            @click.stop.prevent="clear()"
           >
             <RuiIcon
               color="error"
@@ -244,7 +477,7 @@ function setValue(val: T, index?: number) {
               name="arrow-drop-down-fill"
             />
           </span>
-        </button>
+        </div>
         <fieldset
           v-if="outlined"
           :class="css.fieldset"
@@ -252,11 +485,6 @@ function setValue(val: T, index?: number) {
           <legend :class="{ 'px-2': float }" />
         </fieldset>
       </slot>
-      <input
-        :value="value ? value[keyProp] : ''"
-        class="hidden"
-        type="hidden"
-      />
     </template>
     <template #default="{ width }">
       <div
@@ -280,7 +508,8 @@ function setValue(val: T, index?: number) {
             variant="list"
             :class="{
               highlighted: highlightedIndex === item.index,
-              [css.highlighted]: !isActiveItem(item) && highlightedIndex === item.index,
+              [css.highlighted]: highlightedIndex === item.index,
+              [css.active]: isActiveItem(item),
             }"
             @input="setValue(item, item.index)"
             @mousedown="highlightedIndex = item.index"
@@ -316,7 +545,7 @@ function setValue(val: T, index?: number) {
 
   .activator {
     @apply relative inline-flex items-center w-full;
-    @apply outline-none focus:outline-none cursor-pointer min-h-14 pl-3 py-2 pr-8 rounded;
+    @apply outline-none focus-within:outline-none cursor-pointer min-h-14 pl-3 py-2 pr-8 rounded;
     @apply m-0 bg-white transition-all text-body-1 text-left hover:border-black;
 
     &:not(.outlined) {
@@ -343,7 +572,8 @@ function setValue(val: T, index?: number) {
       @apply border-none hover:border-none;
 
       &.opened,
-      &:focus {
+      &:focus,
+      &:focus-within {
         @apply border-rui-primary;
 
         ~ .fieldset {
@@ -400,8 +630,12 @@ function setValue(val: T, index?: number) {
       @apply block truncate transition-all duration-75;
     }
 
+    .value {
+      @apply flex gap-1 flex-wrap;
+    }
+
     .clear {
-      @apply ml-auto shrink-0;
+      @apply ml-auto shrink-0 invisible;
     }
 
     .icon {
@@ -429,7 +663,9 @@ function setValue(val: T, index?: number) {
       &.opened,
       &.opened.with-value,
       &:focus,
-      &:focus.with-value {
+      &:focus.with-value,
+      &:focus-within,
+      &:focus-within.with-value {
         .label {
           @apply text-rui-primary;
         }
