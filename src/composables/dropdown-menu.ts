@@ -3,7 +3,7 @@ import type { Ref } from 'vue';
 export interface DropdownOptions<T, K> {
   options: Ref<T[]>;
   dense?: Ref<boolean>;
-  value: Ref<T | T[] | null>;
+  value: Ref<T | T[] | undefined>;
   keyAttr: K;
   textAttr: K;
   appendWidth?: number;

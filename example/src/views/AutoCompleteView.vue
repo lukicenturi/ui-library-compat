@@ -24,7 +24,7 @@ const options: Options[] = [
   })),
 ];
 
-const autoComplete = ref<AutoCompleteProps[]>([
+const autoComplete = ref<AutoCompleteProps<Options>[]>([
   {
     disabled: false,
     keyAttr: 'id',
@@ -91,7 +91,7 @@ const autoComplete = ref<AutoCompleteProps[]>([
   },
 ]);
 
-const autoCompleteCustom = ref<AutoCompleteProps[]>([
+const autoCompleteCustom = ref<AutoCompleteProps<Options>[]>([
   {
     disabled: false,
     keyAttr: 'id',
@@ -132,9 +132,9 @@ const autoCompleteCustom = ref<AutoCompleteProps[]>([
 
 const primitiveOptions: string[] = ['Lorem', 'Ipsum', 'Dolor', 'Sit amet', 'Consecteur'];
 
-const autoCompletePrimitive = ref<AutoCompleteProps[]>([
+const autoCompletePrimitive = ref<AutoCompleteProps<string>[]>([
   {
-    value: undefined,
+    value: 'Lorem',
     options: primitiveOptions,
   },
   {
@@ -149,7 +149,7 @@ const autoCompletePrimitive = ref<AutoCompleteProps[]>([
     options: primitiveOptions,
   },
   {
-    value: { key: 'Lorem', label: 'Lorem' },
+    value: 'Lorem',
     dense: true,
     disabled: true,
     options: primitiveOptions,
@@ -173,7 +173,7 @@ const autoCompletePrimitive = ref<AutoCompleteProps[]>([
     options: primitiveOptions,
   },
   {
-    value: { key: 'Lorem', label: 'Lorem' },
+    value: 'Lorem',
     dense: true,
     disabled: true,
     variant: 'outlined',
@@ -201,7 +201,7 @@ const autoCompletePrimitive = ref<AutoCompleteProps[]>([
     options: primitiveOptions,
   },
   {
-    value: [{ key: 'Lorem', label: 'Lorem' }],
+    value: ['Lorem'],
     dense: true,
     disabled: true,
     variant: 'outlined',
@@ -291,7 +291,6 @@ const autoCompletePrimitive = ref<AutoCompleteProps[]>([
           v-bind="objectOmit(autoCompleteProp, ['value'])"
           :data-cy="`auto-complete-custom-inner-${i}`"
           :item-height="autoCompleteProp.dense ? undefined : 80"
-          clearable
           :label-class="autoCompleteProp.dense ? undefined : 'h-20'"
           variant="outlined"
         >

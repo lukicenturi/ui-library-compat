@@ -6,13 +6,13 @@ import RuiChip from '@/components/chips/Chip.vue';
 import RuiMenu, { type MenuProps } from '@/components/overlays/menu/Menu.vue';
 import type { Ref } from 'vue';
 
-export type T = any;
+export type T = object | string;
 
-export type K = keyof T;
+export type K = Extract<keyof T, string>;
 
-export type ModelValue<T> = T | null | T[];
+export type ModelValue<MV> = MV | MV[] | null;
 
-export interface Props {
+export interface Props<T> {
   options: T[];
   keyAttr?: K;
   textAttr?: K;
@@ -44,7 +44,7 @@ defineOptions({
   name: 'RuiAutoComplete',
 });
 
-const props = withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props<T>>(), {
   disabled: false,
   readOnly: false,
   dense: false,
@@ -82,8 +82,8 @@ const { focused: searchInputFocused } = useFocus(textInput);
 
 const isPrimitiveOptions = computed(() => !(props.options[0] instanceof Object));
 
-const keyProp = computed(() => props.keyAttr ?? 'key');
-const textProp = computed(() => props.textAttr ?? 'label');
+const keyProp = computed<K>(() => props.keyAttr ?? 'key' as K);
+const textProp = computed<K>(() => props.textAttr ?? 'label' as K);
 
 const internalSearch: Ref<string> = ref('');
 const debouncedInternalSearch = refDebounced(internalSearch, 200);
@@ -96,7 +96,7 @@ watchImmediate(searchInputModel, (search) => {
   set(internalSearch, search);
 });
 
-const mappedOptions = computed(() => {
+const mappedOptions = computed<(T extends string ? T : Record<K, T>)[]>(() => {
   const filtered = props.options;
   if (!get(isPrimitiveOptions))
     return filtered;
@@ -129,10 +129,10 @@ function input(value: ModelValue<T>) {
   emit('input', value);
 }
 
-const value: Ref<T[]> = computed({
+const value = computed<(T extends string ? T : Record<K, T>)[]>({
   get: () => {
     const value = props.value;
-    const valueToArray = value ? (get(multiple) ? value : [value]) : [];
+    const valueToArray = value ? (Array.isArray(value) ? value : [value]) : [];
 
     if (props.keyAttr || get(isPrimitiveOptions))
       return get(mappedOptions).filter(item => valueToArray.includes(item[get(keyProp)]));

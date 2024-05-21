@@ -136,7 +136,7 @@ const options: SelectOption[] = [
   })),
 ];
 
-const menuSelect = ref<MenuSelectProps[]>([
+const menuSelect = ref<MenuSelectProps<SelectOption>[]>([
   {
     disabled: false,
     keyAttr: 'id',
@@ -203,7 +203,7 @@ const menuSelect = ref<MenuSelectProps[]>([
   },
 ]);
 
-const menuSelectCustom = ref<MenuSelectProps[]>([
+const menuSelectCustom = ref<MenuSelectProps<SelectOption>[]>([
   {
     disabled: false,
     keyAttr: 'id',
@@ -244,9 +244,9 @@ const menuSelectCustom = ref<MenuSelectProps[]>([
 
 const primitiveOptions: string[] = ['Lorem', 'Ipsum', 'Dolor', 'Sit amet', 'Consecteur'];
 
-const menuSelectPrimitive = ref<MenuSelectProps[]>([
+const menuSelectPrimitive = ref<MenuSelectProps<string>[]>([
   {
-    value: undefined,
+    value: 'Lorem',
     options: primitiveOptions,
   },
   {
@@ -261,7 +261,7 @@ const menuSelectPrimitive = ref<MenuSelectProps[]>([
     options: primitiveOptions,
   },
   {
-    value: { key: 'Lorem', label: 'Lorem' },
+    value: 'Lorem',
     dense: true,
     disabled: true,
     options: primitiveOptions,
@@ -285,7 +285,7 @@ const menuSelectPrimitive = ref<MenuSelectProps[]>([
     options: primitiveOptions,
   },
   {
-    value: { key: 'Lorem', label: 'Lorem' },
+    value: 'Lorem',
     dense: true,
     disabled: true,
     variant: 'outlined',

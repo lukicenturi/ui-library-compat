@@ -3,15 +3,15 @@ import RuiButton from '@/components/buttons/button/Button.vue';
 import RuiIcon from '@/components/icons/Icon.vue';
 import RuiMenu, { type MenuProps } from '@/components/overlays/menu/Menu.vue';
 
-export type T = any;
+export type T = object | string;
 
-export type K = keyof T;
+export type K = Extract<keyof T, string>;
 
-export interface Props {
+export interface Props<T> {
   options: T[];
   keyAttr?: K;
   textAttr?: K;
-  value?: T | null;
+  value?: T;
   disabled?: boolean;
   readOnly?: boolean;
   dense?: boolean;
@@ -37,7 +37,7 @@ defineOptions({
   inheritAttrs: false,
 });
 
-const props = withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props<T>>(), {
   disabled: false,
   readOnly: false,
   dense: false,
@@ -57,7 +57,7 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const emit = defineEmits<{
-  (e: 'input', value?: T | null): void;
+  (e: 'input', value?: T | undefined): void;
 }>();
 
 const css = useCssModule();
@@ -70,10 +70,10 @@ const { focused } = useFocus(activator);
 
 const isPrimitiveOptions = computed(() => !(props.options[0] instanceof Object));
 
-const keyProp = computed(() => props.keyAttr ?? 'key');
-const textProp = computed(() => props.textAttr ?? 'label');
+const keyProp = computed<K>(() => props.keyAttr ?? 'key' as K);
+const textProp = computed<K>(() => props.textAttr ?? 'label' as K);
 
-const mappedOptions = computed(() => {
+const mappedOptions = computed<(T extends string ? T : Record<K, T>)[]>(() => {
   if (!get(isPrimitiveOptions))
     return props.options;
 
@@ -83,14 +83,14 @@ const mappedOptions = computed(() => {
   }));
 });
 
-const value = computed({
+const value = computed<(T extends string ? T : Record<K, T>) | undefined>({
   get: () => {
     if (props.keyAttr || get(isPrimitiveOptions))
       return get(mappedOptions).find(option => option[get(keyProp)] === props.value);
     return props.value;
   },
-  set: (selected) => {
-    const selection = props.keyAttr || get(isPrimitiveOptions) ? selected[get(keyProp)] : selected;
+  set: (selected?: T) => {
+    const selection = (props.keyAttr || get(isPrimitiveOptions)) && selected ? selected[get(keyProp)] : selected;
     return emit('input', selection);
   },
 });
@@ -229,7 +229,7 @@ function setValue(val: T, index?: number) {
           <span
             v-if="clearable && value && !disabled"
             :class="css.clear"
-            @click.stop.prevent="emit('input', null)"
+            @click.stop.prevent="emit('input', undefined)"
           >
             <RuiIcon
               color="error"
