@@ -33,7 +33,6 @@ export interface Props {
   hint?: string;
   errorMessages?: string | string[];
   successMessages?: string | string[];
-  returnPrimitive?: boolean;
   hideDetails?: boolean;
   autoSelectFirst?: boolean;
   searchInput?: string;
@@ -51,7 +50,6 @@ const props = withDefaults(defineProps<Props>(), {
   dense: false,
   clearable: true,
   hideDetails: false,
-  returnPrimitive: false,
   label: 'Select',
   prependWidth: 0,
   appendWidth: 0,
@@ -73,6 +71,7 @@ const emit = defineEmits<{
 }>();
 
 const css = useCssModule();
+const attrs = useAttrs();
 
 const { dense, variant, disabled } = toRefs(props);
 
@@ -135,13 +134,13 @@ const value: Ref<T[]> = computed({
     const value = props.value;
     const valueToArray = value ? (get(multiple) ? value : [value]) : [];
 
-    if (props.keyAttr || props.returnPrimitive)
+    if (props.keyAttr || get(isPrimitiveOptions))
       return get(mappedOptions).filter(item => valueToArray.includes(item[get(keyProp)]));
 
     return valueToArray;
   },
   set: (selected: T[]) => {
-    const selection = props.keyAttr || props.returnPrimitive ? selected.map(item => item[get(keyProp)]) : selected;
+    const selection = props.keyAttr || get(isPrimitiveOptions) ? selected.map(item => item[get(keyProp)]) : selected;
 
     if (get(multiple))
       return input(selection);
@@ -366,6 +365,7 @@ function onInputDeletePressed() {
               [css['with-success']]: hasSuccess && !hasError,
             },
           ]"
+          v-bind="attrs"
           data-id="activator"
           :tabindex="disabled || readOnly ? -1 : 0"
           v-on="readOnly ? {} : on"

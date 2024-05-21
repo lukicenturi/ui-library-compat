@@ -28,13 +28,13 @@ export interface Props {
   hint?: string;
   errorMessages?: string | string[];
   successMessages?: string | string[];
-  returnPrimitive?: boolean;
   hideDetails?: boolean;
   autoSelectFirst?: boolean;
 }
 
 defineOptions({
   name: 'RuiMenuSelect',
+  inheritAttrs: false,
 });
 
 const props = withDefaults(defineProps<Props>(), {
@@ -43,7 +43,6 @@ const props = withDefaults(defineProps<Props>(), {
   dense: false,
   clearable: false,
   hideDetails: false,
-  returnPrimitive: false,
   label: 'Select',
   prependWidth: 0,
   appendWidth: 0,
@@ -62,6 +61,7 @@ const emit = defineEmits<{
 }>();
 
 const css = useCssModule();
+const attrs = useAttrs();
 
 const { dense, variant } = toRefs(props);
 
@@ -85,12 +85,12 @@ const mappedOptions = computed(() => {
 
 const value = computed({
   get: () => {
-    if (props.keyAttr || props.returnPrimitive)
+    if (props.keyAttr || get(isPrimitiveOptions))
       return get(mappedOptions).find(option => option[get(keyProp)] === props.value);
     return props.value;
   },
   set: (selected) => {
-    const selection = props.keyAttr || props.returnPrimitive ? selected[get(keyProp)] : selected;
+    const selection = props.keyAttr || get(isPrimitiveOptions) ? selected[get(keyProp)] : selected;
     return emit('input', selection);
   },
 });
@@ -186,6 +186,7 @@ function setValue(val: T, index?: number) {
               [css['with-success']]: hasSuccess && !hasError,
             },
           ]"
+          v-bind="attrs"
           data-id="activator"
           v-on="readOnly ? {} : on"
           @keydown.up.prevent="moveHighlight(true)"
